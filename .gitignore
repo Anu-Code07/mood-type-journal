@@ -1,0 +1,14 @@
+# Runtime / package managers
+node_modules/
+dist/
+coverage/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+
+# Logs
+*.log
