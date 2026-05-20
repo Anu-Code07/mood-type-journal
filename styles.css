@@ -213,6 +213,10 @@ textarea:focus {
   flex: 1;
 }
 
+.row.compact-row > * {
+  flex: 0 1 auto;
+}
+
 .row.split > :first-child {
   flex: 3;
 }

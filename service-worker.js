@@ -1,5 +1,5 @@
-const SHELL_CACHE = 'moodtype-shell-v1';
-const RUNTIME_CACHE = 'moodtype-runtime-v1';
+const SHELL_CACHE = 'moodtype-shell-v2';
+const RUNTIME_CACHE = 'moodtype-runtime-v2';
 const APP_SHELL_FILES = [
   './',
   './index.html',

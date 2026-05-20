@@ -29,6 +29,10 @@ MoodType Journal is now a **full mobile-first PWA web app**: installable to phon
 ### 3) AI Mood Wallpaper Studio
 - mood/tone/energy sentiment heuristic engine (replaceable with real AI API)
 - extracted reflective quote
+- free background generation chain:
+  - `pollinations.ai` (no-key free endpoint) when available
+  - `picsum.photos` fallback
+  - local procedural rendering fallback (always available)
 - wallpaper canvas rendering:
   - mood gradient palette
   - grain/noise
@@ -43,6 +47,7 @@ MoodType Journal is now a **full mobile-first PWA web app**: installable to phon
 ### 5) Mood Timeline
 - local saved memory feed
 - mood + energy metadata
+- wallpaper source metadata (free provider vs local)
 - simple emotional streak estimate
 
 ### 6) PWA Install + Offline

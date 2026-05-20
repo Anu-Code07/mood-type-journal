@@ -9,6 +9,43 @@ const TYPE_MODES = [
   { key: 'handwritten', label: 'handwritten' },
   { key: 'kinetic', label: 'kinetic' },
 ];
+const STYLE_PRESETS = [
+  {
+    key: 'japanese-minimal',
+    label: 'japanese minimal',
+    prompt:
+      'minimal japanese poster, soft fog gradient, negative space, delicate grain, cinematic smartphone wallpaper',
+    palette: ['#0b0f1f', '#29506e', '#c4e7de'],
+  },
+  {
+    key: 'dark-academia',
+    label: 'dark academia',
+    prompt:
+      'dark academia poster, moody shadows, paper grain, cinematic typography background, smartphone wallpaper',
+    palette: ['#120f0f', '#4c4034', '#dac6a1'],
+  },
+  {
+    key: 'cyberpunk-neon',
+    label: 'cyberpunk neon',
+    prompt:
+      'cyberpunk city glow, neon haze, reflective rain, cinematic poster, no people, smartphone wallpaper',
+    palette: ['#06001e', '#5422ca', '#24d7ff'],
+  },
+  {
+    key: 'dreamy-pastel',
+    label: 'dreamy pastel',
+    prompt:
+      'dreamy pastel clouds, soft blur lights, floating glow particles, smartphone wallpaper background',
+    palette: ['#151838', '#7a42de', '#f4aac8'],
+  },
+  {
+    key: 'rainy-night',
+    label: 'rainy-night aesthetics',
+    prompt:
+      'rainy night city blur, blue cinematic bokeh, emotional poster background, smartphone wallpaper',
+    palette: ['#050711', '#1d3f93', '#70adf7'],
+  },
+];
 const STORAGE_KEY = 'moodtype.timeline.v1';
 
 const appState = {
@@ -23,6 +60,9 @@ const appState = {
     grain: 40,
     blur: 26,
     glow: 34,
+    styleKey: 'dreamy-pastel',
+    source: 'local procedural',
+    backgroundImage: null,
   },
   timeline: loadTimeline(),
   deferredInstallPrompt: null,
@@ -40,6 +80,8 @@ const refs = {
   blurRange: document.getElementById('blurRange'),
   glowRange: document.getElementById('glowRange'),
   canvas: document.getElementById('wallpaperCanvas'),
+  freeBackgroundButton: document.getElementById('freeBackgroundButton'),
+  backgroundSourceChip: document.getElementById('backgroundSourceChip'),
   timelineList: document.getElementById('timelineList'),
   installButton: document.getElementById('installButton'),
   voiceButton: document.getElementById('voiceButton'),
@@ -63,6 +105,7 @@ function init() {
   renderTypographyPreview();
   renderTimeline();
   drawWallpaperCanvas();
+  updateSourceChip();
   updateBackgroundPalette(appState.wallpaper.palette);
   registerServiceWorker();
 }
@@ -92,6 +135,7 @@ function bindEvents() {
   refs.saveButton.addEventListener('click', handleSaveMemory);
   refs.downloadButton.addEventListener('click', handleDownloadWallpaper);
   refs.shareButton.addEventListener('click', handleShareStory);
+  refs.freeBackgroundButton.addEventListener('click', handleGenerateFreeBackground);
   refs.voiceButton.addEventListener('click', handleVoiceToText);
   refs.installButton.addEventListener('click', handleInstallPrompt);
 
@@ -163,12 +207,17 @@ async function handleAnalyzeMood() {
   refs.analyzeButton.textContent = 'Analyzing...';
 
   await sleep(500);
-  appState.analysis = analyzeMoodText(text);
+  appState.analysis = analyzeMoodText(text, [...appState.tags]);
+  const style = pickStyleByKey(appState.analysis.styleKey);
 
-  refs.moodChip.textContent = appState.analysis.theme;
+  refs.moodChip.textContent = `${appState.analysis.theme} · ${appState.analysis.sentiment}`;
   appState.wallpaper.quote = appState.analysis.quote;
-  appState.wallpaper.palette = appState.analysis.palette;
-  updateBackgroundPalette(appState.analysis.palette);
+  appState.wallpaper.palette = style?.palette ?? appState.analysis.palette;
+  appState.wallpaper.styleKey = style?.key ?? appState.wallpaper.styleKey;
+  appState.wallpaper.source = 'local procedural';
+  appState.wallpaper.backgroundImage = null;
+  updateSourceChip();
+  updateBackgroundPalette(appState.wallpaper.palette);
   renderTypographyPreview();
   drawWallpaperCanvas();
 
@@ -195,6 +244,8 @@ function handleSaveMemory() {
     quote: appState.analysis.quote,
     palette: appState.analysis.palette,
     sentiment: appState.analysis.sentiment,
+    source: appState.wallpaper.source,
+    styleKey: appState.wallpaper.styleKey,
   };
 
   appState.timeline.unshift(entry);
@@ -202,6 +253,45 @@ function handleSaveMemory() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(appState.timeline));
   renderTimeline();
   showToast('Memory saved to mood timeline.');
+}
+
+async function handleGenerateFreeBackground() {
+  if (!appState.analysis) {
+    showToast('Transform mood first so style and quote are ready.');
+    return;
+  }
+
+  refs.freeBackgroundButton.disabled = true;
+  refs.freeBackgroundButton.textContent = 'Generating...';
+  await runExportProgress('Generating free AI background…');
+
+  const seed = String(Date.now());
+  const style = pickStyleByKey(appState.wallpaper.styleKey);
+  const prompt = buildFreeImagePrompt({
+    text: appState.text,
+    quote: appState.wallpaper.quote,
+    mood: appState.analysis.mood,
+    theme: appState.analysis.theme,
+    styleLabel: style?.label ?? appState.analysis.theme,
+  });
+
+  try {
+    const result = await fetchFreeBackgroundImage({ prompt, seed });
+    appState.wallpaper.backgroundImage = result.image;
+    appState.wallpaper.source = result.provider;
+    updateSourceChip();
+    drawWallpaperCanvas();
+    showToast(`Background generated using ${result.provider}.`);
+  } catch {
+    appState.wallpaper.backgroundImage = null;
+    appState.wallpaper.source = 'local procedural';
+    updateSourceChip();
+    drawWallpaperCanvas();
+    showToast('Free AI providers unavailable. Using local procedural style.');
+  } finally {
+    refs.freeBackgroundButton.disabled = false;
+    refs.freeBackgroundButton.textContent = 'Generate Free AI Background';
+  }
 }
 
 async function handleDownloadWallpaper() {
@@ -342,6 +432,7 @@ function renderTimeline() {
         <span>${item.emoji}</span>
         <span>${item.mood}</span>
         <span>${item.energy} energy</span>
+        <span>${escapeHtml(item.source ?? 'local procedural')}</span>
         <span>${new Date(item.createdAt).toLocaleDateString()}</span>
       </div>
     `;
@@ -359,19 +450,36 @@ function drawWallpaperCanvas() {
   }
   const { width, height } = canvas;
   const palette = appState.wallpaper.palette;
+  context.clearRect(0, 0, width, height);
 
-  const gradient = context.createLinearGradient(0, 0, width, height);
-  gradient.addColorStop(0, palette[0]);
-  gradient.addColorStop(0.55, palette[1]);
-  gradient.addColorStop(1, palette[2]);
-  context.fillStyle = gradient;
+  if (appState.wallpaper.backgroundImage) {
+    drawCoverImage({
+      context,
+      image: appState.wallpaper.backgroundImage,
+      canvasWidth: width,
+      canvasHeight: height,
+    });
+  } else {
+    const gradient = context.createLinearGradient(0, 0, width, height);
+    gradient.addColorStop(0, palette[0]);
+    gradient.addColorStop(0.55, palette[1]);
+    gradient.addColorStop(1, palette[2]);
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, width, height);
+  }
+
+  const tint = context.createLinearGradient(0, 0, width, height);
+  tint.addColorStop(0, `${palette[0]}44`);
+  tint.addColorStop(0.4, `${palette[1]}22`);
+  tint.addColorStop(1, `${palette[2]}44`);
+  context.fillStyle = tint;
   context.fillRect(0, 0, width, height);
 
   context.globalAlpha = 0.22;
   for (let i = 0; i < 8; i += 1) {
-    const radius = 220 + Math.random() * 320;
-    const x = Math.random() * width;
-    const y = Math.random() * height;
+    const radius = 220 + seededRandom(i + width) * 320;
+    const x = seededRandom(i + 70) * width;
+    const y = seededRandom(i + 130) * height;
     const glow = context.createRadialGradient(x, y, 0, x, y, radius);
     glow.addColorStop(0, 'rgba(255,255,255,0.28)');
     glow.addColorStop(1, 'rgba(255,255,255,0)');
@@ -385,7 +493,7 @@ function drawWallpaperCanvas() {
   const grainCount = Math.floor((appState.wallpaper.grain / 100) * 8500);
   context.fillStyle = 'rgba(255,255,255,0.07)';
   for (let i = 0; i < grainCount; i += 1) {
-    context.fillRect(Math.random() * width, Math.random() * height, 1, 1);
+    context.fillRect(seededRandom(i * 13 + 9) * width, seededRandom(i * 11 + 3) * height, 1, 1);
   }
 
   const blurAlpha = appState.wallpaper.blur / 100;
@@ -408,61 +516,79 @@ function drawWallpaperCanvas() {
   });
 }
 
-function analyzeMoodText(text) {
+function analyzeMoodText(text, tags) {
   const lower = text.toLowerCase();
-  const hasCalm = ['peaceful', 'slow', 'quiet', 'still'].some((word) => lower.includes(word));
-  const hasTired = ['tired', 'exhausted', 'drained', 'burnout'].some((word) => lower.includes(word));
-  const hasProud = ['proud', 'accomplished', 'won', 'progress'].some((word) => lower.includes(word));
-  const hasLost = ['lost', 'empty', 'heavy', 'lonely'].some((word) => lower.includes(word));
-  const hasNight = ['night', 'drive', 'rain', 'late'].some((word) => lower.includes(word));
+  const tokenMatches = (words) => words.filter((word) => lower.includes(word)).length;
+  const tagBoost = tags.join(' ').toLowerCase();
 
-  if (hasCalm) {
-    return {
+  const calmScore = tokenMatches(['peaceful', 'slow', 'quiet', 'still', 'breathe']) + scoreTag(tagBoost, 'peaceful');
+  const tiredScore = tokenMatches(['tired', 'exhausted', 'drained', 'burnout']);
+  const proudScore = tokenMatches(['proud', 'accomplished', 'won', 'progress']);
+  const heavyScore = tokenMatches(['lost', 'empty', 'heavy', 'lonely', 'hurt']);
+  const nightScore = tokenMatches(['night', 'drive', 'rain', 'late', 'city']) + scoreTag(tagBoost, 'late-night');
+  const gratefulScore = tokenMatches(['grateful', 'thankful', 'blessed']) + scoreTag(tagBoost, 'grateful');
+  const focusedScore = tokenMatches(['focus', 'discipline', 'locked in']) + scoreTag(tagBoost, 'focused');
+
+  const scoreMap = [
+    {
       mood: 'peaceful',
       energy: 'low',
       sentiment: 'positive',
       theme: 'japanese minimal',
-      quote: 'Slow days still move your life forward.',
-      palette: ['#080e1f', '#17495f', '#9edac0'],
-    };
-  }
-  if (hasTired && hasProud) {
-    return {
+      styleKey: 'japanese-minimal',
+      score: calmScore + gratefulScore,
+    },
+    {
       mood: 'resilient',
       energy: 'medium',
       sentiment: 'mixed',
       theme: 'dark academia',
-      quote: 'You carried the weight and still kept your light.',
-      palette: ['#14110f', '#594f43', '#dfd4c4'],
-    };
-  }
-  if (hasLost) {
-    return {
+      styleKey: 'dark-academia',
+      score: tiredScore + proudScore + focusedScore,
+    },
+    {
       mood: 'healing',
       energy: 'low',
       sentiment: 'negative',
       theme: 'rainy-night aesthetics',
-      quote: 'Not every wandering soul is lost.',
-      palette: ['#05070f', '#1e3a8a', '#72abf8'],
-    };
-  }
-  if (hasNight) {
-    return {
+      styleKey: 'rainy-night',
+      score: heavyScore + nightScore,
+    },
+    {
       mood: 'nostalgic',
       energy: 'balanced',
       sentiment: 'mixed',
       theme: 'cyberpunk neon',
-      quote: 'Midnight roads remember every version of you.',
-      palette: ['#04001f', '#3d17b4', '#25d6f8'],
-    };
-  }
+      styleKey: 'cyberpunk-neon',
+      score: nightScore + 1,
+    },
+    {
+      mood: 'reflective',
+      energy: 'balanced',
+      sentiment: 'mixed',
+      theme: 'dreamy pastel',
+      styleKey: 'dreamy-pastel',
+      score: 1,
+    },
+  ];
+
+  scoreMap.sort((a, b) => b.score - a.score);
+  const winner = scoreMap[0];
+  const style = pickStyleByKey(winner.styleKey) ?? STYLE_PRESETS[0];
+
   return {
-    mood: 'reflective',
-    energy: 'balanced',
-    sentiment: 'mixed',
-    theme: 'dreamy pastel',
-    quote: 'Your story is still unfolding in beautiful gradients.',
-    palette: ['#0f1024', '#7132df', '#f89ec2'],
+    mood: winner.mood,
+    energy: winner.energy,
+    sentiment: winner.sentiment,
+    theme: winner.theme,
+    styleKey: winner.styleKey,
+    quote: buildFreeQuote({
+      mood: winner.mood,
+      sentiment: winner.sentiment,
+      text: lower,
+      tags,
+    }),
+    palette: style.palette,
   };
 }
 
@@ -524,6 +650,10 @@ function updateBackgroundPalette(palette) {
   root.style.setProperty('--bg-1', palette[0]);
   root.style.setProperty('--bg-2', palette[1]);
   root.style.setProperty('--bg-3', palette[2]);
+}
+
+function updateSourceChip() {
+  refs.backgroundSourceChip.textContent = `source: ${appState.wallpaper.source}`;
 }
 
 function loadTimeline() {
@@ -600,6 +730,137 @@ function escapeHtml(value) {
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;');
+}
+
+function scoreTag(allTags, value) {
+  return allTags.includes(value) ? 1 : 0;
+}
+
+function pickStyleByKey(styleKey) {
+  return STYLE_PRESETS.find((item) => item.key === styleKey) ?? null;
+}
+
+function buildFreeQuote({ mood, sentiment, text, tags }) {
+  const snippets = {
+    peaceful: ['Soft days are still progress.', 'Quiet moments are also milestones.'],
+    resilient: ['You bent, not broke.', 'Strength can look gentle and still be real.'],
+    healing: ['Healing is movement, even when it is slow.', 'You are rebuilding from the inside out.'],
+    nostalgic: ['The night keeps your memories glowing.', 'Some roads return you to yourself.'],
+    reflective: ['You are still becoming, and that is beautiful.', 'Your story is unfolding in gradients.'],
+  };
+
+  if (text.includes('lost')) {
+    return 'Not every wandering soul is lost.';
+  }
+  if (text.includes('proud')) {
+    return 'You carried the weight and still protected your spark.';
+  }
+  if (tags.includes('grateful')) {
+    return 'Gratitude turns small moments into light.';
+  }
+
+  const moodSnippets = snippets[mood] ?? snippets.reflective;
+  const extra = sentiment === 'negative' ? ' Keep going softly.' : '';
+  return `${moodSnippets[Math.floor(seededRandom(text.length) * moodSnippets.length)]}${extra}`;
+}
+
+function buildFreeImagePrompt({ text, quote, mood, theme, styleLabel }) {
+  const trimmedText = text.trim().slice(0, 200);
+  const safeQuote = quote.trim().slice(0, 120);
+  const stylePrompt = pickStyleByKey(appState.wallpaper.styleKey)?.prompt ?? '';
+  return [
+    'vertical phone wallpaper',
+    styleLabel,
+    theme,
+    mood,
+    'abstract emotional scene',
+    'cinematic lighting',
+    'soft texture grain',
+    `journal context: ${trimmedText}`,
+    `quote inspiration: ${safeQuote}`,
+    stylePrompt,
+  ]
+    .filter(Boolean)
+    .join(', ');
+}
+
+async function fetchFreeBackgroundImage({ prompt, seed }) {
+  const providers = [
+    {
+      name: 'pollinations.ai',
+      url: `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1080&height=1920&seed=${seed}&nologo=true&enhance=true`,
+    },
+    {
+      name: 'picsum.photos',
+      url: `https://picsum.photos/seed/${encodeURIComponent(seed + prompt.slice(0, 20))}/1080/1920`,
+    },
+  ];
+
+  for (const provider of providers) {
+    try {
+      const image = await loadImageFromRemote(provider.url);
+      return {
+        provider: provider.name,
+        image,
+      };
+    } catch {
+      continue;
+    }
+  }
+
+  throw new Error('No free providers available');
+}
+
+async function loadImageFromRemote(url) {
+  const response = await fetch(url, { cache: 'no-store', mode: 'cors' });
+  if (!response.ok) {
+    throw new Error(`Image fetch failed: ${response.status}`);
+  }
+  const blob = await response.blob();
+  return blobToImage(blob);
+}
+
+function blobToImage(blob) {
+  return new Promise((resolve, reject) => {
+    const blobUrl = URL.createObjectURL(blob);
+    const image = new Image();
+    image.onload = () => {
+      URL.revokeObjectURL(blobUrl);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(blobUrl);
+      reject(new Error('Could not decode image blob'));
+    };
+    image.src = blobUrl;
+  });
+}
+
+function drawCoverImage({ context, image, canvasWidth, canvasHeight }) {
+  const imageRatio = image.width / image.height;
+  const canvasRatio = canvasWidth / canvasHeight;
+
+  let drawWidth = canvasWidth;
+  let drawHeight = canvasHeight;
+  let offsetX = 0;
+  let offsetY = 0;
+
+  if (imageRatio > canvasRatio) {
+    drawHeight = canvasHeight;
+    drawWidth = drawHeight * imageRatio;
+    offsetX = (canvasWidth - drawWidth) / 2;
+  } else {
+    drawWidth = canvasWidth;
+    drawHeight = drawWidth / imageRatio;
+    offsetY = (canvasHeight - drawHeight) / 2;
+  }
+
+  context.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
+}
+
+function seededRandom(seed) {
+  const value = Math.sin(seed) * 10000;
+  return value - Math.floor(value);
 }
 
 function sleep(milliseconds) {
