@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0c1020" />
+    <meta name="description" content="MoodType Journal — AI-powered journaling and typography wallpaper studio." />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="MoodType" />
+    <title>MoodType Journal</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href="assets/icons/icon.svg" />
+    <link rel="apple-touch-icon" href="assets/icons/icon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="ambient-bg" aria-hidden="true"></div>
+    <main class="app-shell">
+      <header class="top-bar glass-card">
+        <div>
+          <p class="kicker">MoodType Journal</p>
+          <h1>Emotional Art Machine</h1>
+        </div>
+        <button id="installButton" class="ghost-btn hidden" type="button">Install App</button>
+      </header>
+
+      <section class="glass-card section" aria-labelledby="journal-heading">
+        <div class="section-head">
+          <h2 id="journal-heading">AI Journal Input</h2>
+          <span class="chip" id="moodChip">future memory lab</span>
+        </div>
+        <p class="muted">Write your day. MoodType maps emotional tone into cinematic visuals.</p>
+        <div class="journal-box">
+          <textarea
+            id="journalInput"
+            rows="7"
+            placeholder="Today felt peaceful and slow. I am exhausted but proud of myself."
+          ></textarea>
+          <span class="live-cursor" aria-hidden="true"></span>
+        </div>
+        <div id="quickTags" class="tag-row" aria-label="Quick mood tags"></div>
+        <div class="row split">
+          <div id="emojiRow" class="emoji-row" aria-label="Emotion emoji selector"></div>
+          <button id="voiceButton" class="ghost-btn" type="button">Voice to Text</button>
+        </div>
+      </section>
+
+      <section class="glass-card section" aria-labelledby="typography-heading">
+        <h2 id="typography-heading">Typography Transformation Engine</h2>
+        <div id="typeModes" class="tag-row"></div>
+        <div class="type-preview-wrap">
+          <p id="typePreview" class="type-preview" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section class="glass-card section" aria-labelledby="wallpaper-heading">
+        <h2 id="wallpaper-heading">AI Mood Wallpaper Studio</h2>
+        <p class="muted">Real-time lockscreen poster with mood palette, texture grain, blur, and quote extraction.</p>
+        <div class="canvas-wrap">
+          <canvas id="wallpaperCanvas" width="1080" height="1920" aria-label="Wallpaper preview canvas"></canvas>
+        </div>
+        <div class="slider-grid">
+          <label>
+            Grain
+            <input id="grainRange" type="range" min="0" max="100" value="40" />
+          </label>
+          <label>
+            Blur
+            <input id="blurRange" type="range" min="0" max="100" value="26" />
+          </label>
+          <label>
+            Glow
+            <input id="glowRange" type="range" min="0" max="100" value="34" />
+          </label>
+        </div>
+        <div class="row">
+          <button id="downloadButton" class="primary-btn" type="button">Download HD Wallpaper</button>
+          <button id="shareButton" class="ghost-btn" type="button">Share Story Card</button>
+        </div>
+      </section>
+
+      <section class="glass-card section" aria-labelledby="timeline-heading">
+        <div class="section-head">
+          <h2 id="timeline-heading">Mood Timeline</h2>
+          <span id="streakChip" class="chip">0 day streak</span>
+        </div>
+        <div id="timelineList" class="timeline-list"></div>
+      </section>
+    </main>
+
+    <div class="bottom-dock">
+      <button id="analyzeButton" class="primary-btn" type="button">Transform Mood</button>
+      <button id="saveButton" class="ghost-btn" type="button">Save Memory</button>
+    </div>
+
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+    <div id="progressModal" class="progress-modal hidden" aria-hidden="true">
+      <div class="progress-card glass-card">
+        <p id="progressLabel">Rendering cinematic export…</p>
+        <div class="progress-track">
+          <span id="progressBar"></span>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

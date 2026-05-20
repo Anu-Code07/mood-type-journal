@@ -1,130 +1,98 @@
-# MoodType Journal
+# MoodType Journal (PWA)
 
-MoodType Journal is a futuristic AI-powered journaling + typography wallpaper studio built with Flutter.
+MoodType Journal is now a **full mobile-first PWA web app**: installable to phone home screen, offline-capable, and designed as an emotional art machine where journal moments become cinematic typography + wallpapers.
 
-It turns emotional writing into:
-- animated typography scenes
-- AI-crafted wallpaper concepts
-- mood memory timeline cards
-- reflective quote artifacts
+## Product Feel
 
-The product feeling is designed as:
-**minimalist Japanese calm + modern glassmorphism + Spotify Wrapped emotion storytelling + Apple-level motion polish**.
+- minimalist Japanese calm
+- glassmorphism cards and dreamy gradients
+- Spotify Wrapped-style emotional storytelling
+- Apple-smooth micro interactions
 
----
-
-## Experience Pillars
+## Built Features
 
 ### 1) AI Journal Input
-- Distraction-free writing surface
-- Quick mood tags
-- Emoji emotion selection
-- Voice-to-text integration point
-- Ambient animated gradient reacting to mood palette
+- clean distraction-free writing area
+- quick mood tags
+- emoji emotion selector
+- voice-to-text (Web Speech API fallback)
+- ambient gradient background that shifts with mood palette
 
 ### 2) Typography Transformation Engine
-- Lowercase / UPPERCASE / Title Case
-- Aesthetic spacing
-- Poetic mode
-- Handwritten style mode
-- Kinetic mode
-- Ripple + wave motion foundations (CustomPainter + animated transforms)
+- lowercase / UPPERCASE / Title Case
+- aesthetic spacing
+- poetic mode
+- handwritten mode
+- kinetic mode
+- animated per-letter motion
 
-### 3) AI Mood Wallpaper Generator
-- Journal text is analyzed for mood, sentiment, energy, and emotional keywords
-- A reflective quote is generated
-- Wallpaper preview includes:
-  - quote placement
-  - blur gradients
-  - noise/grain texture
-  - mood color palette
+### 3) AI Mood Wallpaper Studio
+- mood/tone/energy sentiment heuristic engine (replaceable with real AI API)
+- extracted reflective quote
+- wallpaper canvas rendering:
+  - mood gradient palette
+  - grain/noise
+  - blur depth
+  - glow intensity
 
-### 4) Interactive Wallpaper Studio
-- Real-time preview
-- Grain slider
-- Blur slider
-- Font selection
-- Export integration hooks (gallery/reel/video wallpaper)
+### 4) Interactive Export
+- HD wallpaper download from canvas
+- story-share flow via Web Share API when available
+- cinematic export progress modal
 
 ### 5) Mood Timeline
-- Saved journal + wallpaper memories
-- Mood and energy chips
-- Emotional history in a cinematic feed format
+- local saved memory feed
+- mood + energy metadata
+- simple emotional streak estimate
+
+### 6) PWA Install + Offline
+- `manifest.webmanifest` for installability
+- `service-worker.js` for app-shell caching and offline fallback
+- `offline.html` fallback page
 
 ---
 
-## Architecture (Clean Architecture + BLoC)
+## File Structure
 
 ```txt
-lib/
-  core/
-    theme/
-    widgets/
-  features/journal/
-    data/
-      models/
-      datasources/
-      repositories/
-    domain/
-      entities/
-      repositories/
-      usecases/
-    presentation/
-      bloc/
-      pages/
-      widgets/
+/
+  index.html
+  styles.css
+  app.js
+  manifest.webmanifest
+  service-worker.js
+  offline.html
+  assets/icons/
 ```
 
-Flow:
-`UI -> BLoC Event -> UseCase -> Repository -> Datasource(s)`
-
-This keeps:
-- widgets dumb and focused on rendering
-- business logic in use cases/data layer
-- clear separation for future AI API replacements
-
 ---
 
-## Implemented Technical Stack
+## Run Locally
 
-- `flutter_bloc` for state orchestration
-- `CustomPainter` for ripple/grain visual effects
-- `flutter_animate` for cinematic entry transitions
-- `shared_preferences` for offline-first timeline persistence
-- `google_fonts` and Material 3 dark theme customization
-- fake AI datasource for deterministic mood analysis scaffolding
-
----
-
-## Key Files
-
-- `lib/features/journal/presentation/pages/moodtype_home_page.dart`
-- `lib/features/journal/presentation/bloc/moodtype_bloc.dart`
-- `lib/features/journal/data/datasources/fake_ai_mood_datasource.dart`
-- `lib/features/journal/data/datasources/local_journal_datasource.dart`
-- `lib/features/journal/presentation/widgets/typography_transformer_panel.dart`
-- `lib/features/journal/presentation/widgets/wallpaper_preview_card.dart`
-
----
-
-## Next Integrations (Production Roadmap)
-
-1. Replace `FakeAiMoodDatasource` with real AI APIs:
-   - mood classification
-   - sentiment + intensity scoring
-   - poetic quote generation
-2. Add shader pipeline for liquid typography deformation and neon flicker.
-3. Add isolate-based render/export service for HD + ultra wallpaper outputs.
-4. Add live wallpaper and animated video export pipeline.
-5. Add lockscreen widgets and emotional heatmap calendar.
-
----
-
-## Run
+No build step is required.
 
 ```bash
-flutter pub get
-flutter run
+python3 -m http.server 4173
 ```
 
-> Note: This cloud environment did not include Flutter/Dart binaries, so the project was scaffolded directly in source form.
+Then open:
+`http://localhost:4173`
+
+> For service worker testing, use `localhost` (secure context rules).
+
+---
+
+## PWA Install (Phone Shortcut)
+
+1. Open the site in Chrome/Safari mobile.
+2. Use **Add to Home Screen** (or install prompt button if available).
+3. Launch it from the new home screen icon in standalone mode.
+
+---
+
+## Next Production Upgrades
+
+1. Replace heuristic mood parser with LLM sentiment/mood API.
+2. Add shader/WebGL typography deformation for liquid/elastic effects.
+3. Add worker-based ultra export pipeline and short video rendering.
+4. Add lockscreen widgets and emotional heatmap calendar.

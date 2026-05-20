@@ -1,9 +1,6 @@
-# Flutter / Dart
-.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-.packages
-build/
+# Runtime / package managers
+node_modules/
+dist/
 coverage/
 
 # IDE
@@ -12,3 +9,6 @@ coverage/
 
 # OS
 .DS_Store
+
+# Logs
+*.log
